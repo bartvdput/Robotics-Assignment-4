@@ -21,7 +21,7 @@
 RobotInfo = [
   {body: null,  // for MatterJS body, added by InstantiateRobot()
    color: "red",  // color of the robot marker
-   init: {x: 50, y: 50, angle: 0},  // initial position and orientation
+   init: {x: 50, y: 50, angle: -Math.PI/25},  // initial position and orientation
    sensors: [  // define an array of sensors on the robot
      // define right sensor
      {sense: senseDistance,  // function handle, determines type of sensor
@@ -45,7 +45,7 @@ RobotInfo = [
 	  // define right touch sensor
      {sense: touchSensor,
       minVal: 0,
-      maxVal: 50,
+      maxVal: 20,
       attachAngle: Math.PI/5,
       lookAngle: 0,
       id: 'touchR',
@@ -54,7 +54,7 @@ RobotInfo = [
 	  // define left touch sensor
      {sense: touchSensor,
       minVal: 0,
-      maxVal: 50,
+      maxVal: 20,
       attachAngle: -Math.PI/5,
       lookAngle: 0,
       id: 'touchL',
@@ -65,7 +65,7 @@ RobotInfo = [
 ];
 
 simInfo = {
-  maxSteps: 20000,  // maximal number of simulation steps to run
+  maxSteps: 4000,  // maximal number of simulation steps to run
   airDrag: 0.1,  // "air" friction of enviroment; 0 is vacuum, 0.9 is molasses
   boxFric: 0.01, //
   boxMass: 0.05,  // mass of boxes
@@ -130,9 +130,9 @@ function init() {  // called once when loading HTML file
                                     mass: simInfo.boxMass,
                                     role: 'box'});
   };
-  const startX = 125, startY = 125,
-        nBoxX = 4, nBoxY = 3,
-        gapX = 40, gapY = 30,
+  const startX = 110, startY = 110,
+        nBoxX = 4, nBoxY = 4,
+        gapX = 50, gapY = 50,
         stack = Matter.Composites.stack(startX, startY,
                                         nBoxX, nBoxY,
                                         gapX, gapY, getBox);
@@ -296,7 +296,7 @@ function senseDistance() {
 
   // indicate if the sensor exceeded its maximum length by returning infinity
   if (rayLength > this.maxVal) {
-    rayLength = Infinity;
+    rayLength = -1;
   }
   else {
     // apply mild noise on the sensor reading, and clamp between valid values
@@ -543,9 +543,14 @@ function simStep() {
   }
   else {
     toggleSimulation();
-	var boxes = getBoxes();
-  	var heaps = getHeaps(boxes);
-	paintHeaps(heaps);
+	console.log("[0,1]")
+	console.log(network.activate([0,1]))
+	
+	console.log("[1,0]")
+	console.log(network.activate([1,0]))
+	//var boxes = getBoxes();
+  	//var heaps = getHeaps(boxes);
+	//paintHeaps(heaps);
   }	
 }
 
@@ -662,22 +667,6 @@ function toggleSimulation() {
   }
 }
 
-function robotMove(robot) {
-// This function is called each timestep and should be used to move the robots	
-	var distR = getSensorValById(robot, "distR");
-	var distL = getSensorValById(robot, "distL");
-	
-	getTouchData(robot);
-	
-	drive(robot, 0.00035)
-	
-	if (distL != 'Infinity') {
-		rotate(robot, (50-distL) * 0.0007)
-	}else if (distR != 'Infinity') {
-		rotate(robot, (50-distR) * -0.0007)
-	}
-};
-
 function getBoxes(){
 	var bodies = Matter.Composite.allBodies(simInfo.engine.world);	
 	var boxes = bodies.filter(function(body) {
@@ -695,7 +684,7 @@ function getHeaps(boxes){
 	while(boxes.length > 0) {
 		var placed = 0
 		boxes.forEach(function(box, index, object){
-			console.log("box: ", box);
+			//console.log("box: ", box);
 			groups.forEach(function(group){
 				for(var i = 0; i<group.length; i++){
 					var box2 = group[i]
@@ -759,8 +748,6 @@ function getRandomColor() {
   }
   return color;
 }
-
-
 
 function touchSensor() {
   /* Distance sensor simulation based on ray casting. Called from sensor
@@ -879,3 +866,30 @@ function touchSensor() {
 
   this.value = rayLength;
 };
+
+function robotMove(robot) {
+// This function is called each timestep and should be used to move the robots	
+	var distR = getSensorValById(robot, "distR");
+	var distL = getSensorValById(robot, "distL");
+	
+	var touchR = getSensorValById(robot, "touchR");
+	var touchL = getSensorValById(robot, "touchL");
+	
+	drive(robot, 0.0003)
+	
+	if(touchR){
+		drive(robot, -0.003)
+		rotate(robot, -0.04);		
+	} 
+	
+	if (touchL){		
+		drive(robot, -0.003)
+		rotate(robot, 0.04);
+	}
+	
+	train([touchL, touchR], [sigmoid(distL), sigmoid(distR)])	
+};
+
+function sigmoid(t) {
+    return 1/(1+Math.exp(-t));
+}
