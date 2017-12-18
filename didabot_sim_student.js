@@ -130,9 +130,9 @@ function init() {  // called once when loading HTML file
                                     mass: simInfo.boxMass,
                                     role: 'box'});
   };
-  const startX = 110, startY = 110,
+  const startX = 80, startY = 80,
         nBoxX = 4, nBoxY = 4,
-        gapX = 50, gapY = 50,
+        gapX = 70, gapY = 70,
         stack = Matter.Composites.stack(startX, startY,
                                         nBoxX, nBoxY,
                                         gapX, gapY, getBox);
@@ -883,7 +883,7 @@ distanceLayer.project(touchLayer);
 
 // set learning rate
 var learningRate = 0.01;
-var threshold = 0.7;
+var threshold = 0.6;
 
 /*
  * trainer function
@@ -915,6 +915,7 @@ function robotMove(robot) {
 	var touchL = getSensorValById(robot, "touchL")
 	
 	// get activation levels from touchLayer
+	distanceLayer.activate([sigmoid(distL), sigmoid(distR)])
 	var touch = touchLayer.activate()	
 	
 	// set robot drive speed
@@ -941,6 +942,15 @@ function robotMove(robot) {
 	// call trainer function
 	train([touchL, touchR], [sigmoid(distL), sigmoid(distR)])		
 	
+	if(simInfo.curSteps % 500 == 0){
+		console.log("[0,1]")
+		distanceLayer.activate([0,1])
+		console.log(touchLayer.activate())	
+	
+		console.log("[1,0]")
+		distanceLayer.activate([1,0])
+		console.log(touchLayer.activate())
+	}	
 };
 
 function sigmoid(t) {
