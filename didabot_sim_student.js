@@ -544,10 +544,17 @@ function simStep() {
   else {
     toggleSimulation();
 	console.log("[0,1]")
-	console.log(network.activate([0,1]))
+	distanceLayer.activate([0,1])
+	console.log(touchLayer.activate())
+	
 	
 	console.log("[1,0]")
-	console.log(network.activate([1,0]))
+	distanceLayer.activate([1,0])
+	console.log(touchLayer.activate())
+	
+	console.log("[0,0]")
+	distanceLayer.activate([0,0])
+	console.log(touchLayer.activate())
 	//var boxes = getBoxes();
   	//var heaps = getHeaps(boxes);
 	//paintHeaps(heaps);
@@ -875,20 +882,57 @@ function robotMove(robot) {
 	var touchR = getSensorValById(robot, "touchR");
 	var touchL = getSensorValById(robot, "touchL");
 	
+	distanceLayer.activate([sigmoid(distL), sigmoid(distR)])
+	var touch = touchLayer.activate()
+	
+	if(touch[0] > 0.75){
+		console.log("L")
+		rotate(robot, 0.004)
+	} else if(touch[1] > 0.75){
+		console.log("R")
+		rotate(robot, -0.004)
+	}
+	
 	drive(robot, 0.0003)
 	
 	if(touchR){
-		drive(robot, -0.003)
-		rotate(robot, -0.04);		
+		//drive(robot, 0.003)
+		rotate(robot, -0.004);	
+		//console.log("touchR")
 	} 
 	
 	if (touchL){		
-		drive(robot, -0.003)
-		rotate(robot, 0.04);
+		//drive(robot, 0.003)
+		//console.log("touchL")
+		rotate(robot, 0.004);
 	}
 	
 	train([touchL, touchR], [sigmoid(distL), sigmoid(distR)])	
+	
+	
+	
 };
+
+var touchLayer = new synaptic.Layer(2);
+var distanceLayer = new synaptic.Layer(2);
+var learningRate = 0.2;
+
+distanceLayer.project(touchLayer);
+
+function train(touchSensor, distanceSensor){
+	distanceLayer.activate(distanceSensor)
+	
+	if (touchSensor[0] && distanceSensor[0] > 0){
+		touchLayer.activate()
+		touchLayer.propagate(learningRate, [1,0])
+	} else if(touchSensor[1] && distanceSensor[1] > 0){
+		touchLayer.activate()
+		touchLayer.propagate(learningRate, [0,1])
+	} else if(touchSensor == [0,0] && distanceSensor == [0,0]){
+		touchLayer.activate()
+		touchLayer.propagate(learningRate, [0,0]);
+	}
+}
 
 function sigmoid(t) {
     return 1/(1+Math.exp(-t));
