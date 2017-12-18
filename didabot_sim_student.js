@@ -894,16 +894,16 @@ function train(touchSensor, distanceSensor){
 	distanceLayer.activate(distanceSensor)
 	touchLayer.activate()
 
-	// learn right
+	// if touchSensor AND distanceSensor right are both active and distanceSensor left is not:
+	// 		learn right
 	if(touchSensor[1] && distanceSensor[1] > 0 && !(distanceSensor[0] > 0.5)){
 		touchLayer.propagate(learningRate, [0,1])
-		//console.log("Learning right")
 	} 
 	
-	// learn left
+	// if touchSensor AND distanceSensor left are both active and distanceSensor right is not:
+	// 		learn left
 	if (touchSensor[0] && distanceSensor[0] > 0 && !(distanceSensor[1] > 0.5 )){
 		touchLayer.propagate(learningRate, [1,0])
-		//console.log("Learning left")
 	}
 }
 
