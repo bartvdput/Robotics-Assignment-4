@@ -45,7 +45,7 @@ RobotInfo = [
 	  // define right touch sensor
      {sense: touchSensor,
       minVal: 0,
-      maxVal: 20,
+      maxVal: 10,
       attachAngle: Math.PI/5,
       lookAngle: 0,
       id: 'touchR',
@@ -54,7 +54,7 @@ RobotInfo = [
 	  // define left touch sensor
      {sense: touchSensor,
       minVal: 0,
-      maxVal: 20,
+      maxVal: 10,
       attachAngle: -Math.PI/5,
       lookAngle: 0,
       id: 'touchL',
@@ -65,7 +65,7 @@ RobotInfo = [
 ];
 
 simInfo = {
-  maxSteps: 4000,  // maximal number of simulation steps to run
+  maxSteps: 10000,  // maximal number of simulation steps to run
   airDrag: 0.1,  // "air" friction of enviroment; 0 is vacuum, 0.9 is molasses
   boxFric: 0.01, //
   boxMass: 0.05,  // mass of boxes
@@ -215,8 +215,8 @@ function senseDistance() {
                       y: rPos.y + (rSize+1) * Math.sin(robotAngle + attachAngle)};
 
   function getEndpoint(rayLength) {
-    return {x: rPos.x + (rSize + rayLength) * Math.cos(rayAngle),
-            y: rPos.y + (rSize + rayLength) * Math.sin(rayAngle)};
+    return {x: startPoint.x + rayLength * Math.cos(rayAngle),
+            y: startPoint.y + rayLength * Math.sin(rayAngle)};
   };
 
   function sensorRay(bodies, rayLength) {
@@ -784,8 +784,8 @@ function touchSensor() {
                       y: rPos.y + (rSize+1) * Math.sin(robotAngle + attachAngle)};
 
   function getEndpoint(rayLength) {
-    return {x: rPos.x + (rSize + rayLength) * Math.cos(rayAngle),
-            y: rPos.y + (rSize + rayLength) * Math.sin(rayAngle)};
+    return {x: startPoint.x + rayLength * Math.cos(rayAngle),
+            y: startPoint.y + rayLength * Math.sin(rayAngle)};
   };
 
   function sensorRay(bodies, rayLength) {
@@ -874,65 +874,74 @@ function touchSensor() {
   this.value = rayLength;
 };
 
-function robotMove(robot) {
-// This function is called each timestep and should be used to move the robots	
-	var distR = getSensorValById(robot, "distR");
-	var distL = getSensorValById(robot, "distL");
-	
-	var touchR = getSensorValById(robot, "touchR");
-	var touchL = getSensorValById(robot, "touchL");
-	
-	distanceLayer.activate([sigmoid(distL), sigmoid(distR)])
-	var touch = touchLayer.activate()
-	
-	if(touch[0] > 0.75){
-		console.log("L")
-		rotate(robot, 0.004)
-	} else if(touch[1] > 0.75){
-		console.log("R")
-		rotate(robot, -0.004)
-	}
-	
-	drive(robot, 0.0003)
-	
-	if(touchR){
-		//drive(robot, 0.003)
-		rotate(robot, -0.004);	
-		//console.log("touchR")
-	} 
-	
-	if (touchL){		
-		//drive(robot, 0.003)
-		//console.log("touchL")
-		rotate(robot, 0.004);
-	}
-	
-	train([touchL, touchR], [sigmoid(distL), sigmoid(distR)])	
-	
-	
-	
-};
-
+// create layers with two neurons
 var touchLayer = new synaptic.Layer(2);
 var distanceLayer = new synaptic.Layer(2);
-var learningRate = 0.2;
 
+//connect distanceLayer to touchLayer
 distanceLayer.project(touchLayer);
 
+// set learning rate
+var learningRate = 0.01;
+var threshold = 0.7;
+
+/*
+ * trainer function
+ * 
+ *
+ */
 function train(touchSensor, distanceSensor){
 	distanceLayer.activate(distanceSensor)
-	
-	if (touchSensor[0] && distanceSensor[0] > 0){
-		touchLayer.activate()
-		touchLayer.propagate(learningRate, [1,0])
-	} else if(touchSensor[1] && distanceSensor[1] > 0){
-		touchLayer.activate()
+	touchLayer.activate()
+
+	// learn right
+	if(touchSensor[1] && distanceSensor[1] > 0 && !(distanceSensor[0] > 0.5)){
 		touchLayer.propagate(learningRate, [0,1])
-	} else if(touchSensor == [0,0] && distanceSensor == [0,0]){
-		touchLayer.activate()
-		touchLayer.propagate(learningRate, [0,0]);
+		//console.log("Learning right")
+	} 
+	
+	// learn left
+	if (touchSensor[0] && distanceSensor[0] > 0 && !(distanceSensor[1] > 0.5 )){
+		touchLayer.propagate(learningRate, [1,0])
+		//console.log("Learning left")
 	}
 }
+
+function robotMove(robot) {
+	// get values from sensors
+	var distR = getSensorValById(robot, "distR")
+	var distL = getSensorValById(robot, "distL")	
+	var touchR = getSensorValById(robot, "touchR")
+	var touchL = getSensorValById(robot, "touchL")
+	
+	// get activation levels from touchLayer
+	var touch = touchLayer.activate()	
+	
+	// set robot drive speed
+	drive(robot, 0.0003)
+	
+	// check for right-collision or if touchLayer activation is above threshold 
+	if(touchR || touch[1] >= threshold){
+		rotate(robot, -0.01)	
+		touchLayer.activate([0,1])
+		
+		// in case the 'touch[1] >= threshold' part was true, set touchR to 1 so the robot keeps learning
+		touchR = 1
+	} 
+	
+	// check for left-collision or if touchLayer activation is above threshold 
+	if (touchL || touch[0] >= threshold){		
+		rotate(robot, 0.01);
+		touchLayer.activate([1,0])
+		
+		// in case the 'touch[0] >= threshold' part was true, set touchR to 1 so the robot keeps learning
+		touchL = 1
+	}
+	
+	// call trainer function
+	train([touchL, touchR], [sigmoid(distL), sigmoid(distR)])		
+	
+};
 
 function sigmoid(t) {
     return 1/(1+Math.exp(-t));
