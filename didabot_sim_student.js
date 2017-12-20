@@ -915,7 +915,7 @@ function robotMove(robot) {
 	var touchL = getSensorValById(robot, "touchL")
 	
 	// get activation levels from touchLayer
-	distanceLayer.activate([linear(distL), linear(distR)])
+	var dist = distanceLayer.activate([linear(distL), linear(distR)])
 	var touch = touchLayer.activate()	
 	
 	// set robot drive speed
@@ -942,6 +942,17 @@ function robotMove(robot) {
 	// call trainer function
 	train([touchL, touchR], [linear(distL), linear(distR)])		
 
+	if(simInfo.curSteps % 1000 == 0){
+		console.log("Left: ")
+		distanceLayer.activate([1,0])
+		console.log("touch activation: " , touchLayer.activate())
+		
+		
+		console.log("Right: ")
+		distanceLayer.activate([0,1])
+		console.log("touch activation: " , touchLayer.activate())		
+	}
+	
 };
 
 function linear(t){
