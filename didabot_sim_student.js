@@ -943,7 +943,7 @@ function robotMove(robot) {
 	// call trainer function
 	train([touchL, touchR], [linear(distL), linear(distR)])		
 
-	if(simInfo.curSteps % 1000 == 0){
+	if(simInfo.curSteps % 1500 == 0){
 		console.log("Left: ")
 		distanceLayer.activate([1,0])
 		console.log("touch activation: " , touchLayer.activate())
@@ -1011,7 +1011,7 @@ function getHeaps(boxes){
 }
 
 function isNeighbor(box1, box2) {
-	return (Math.abs(box1.position.x - box2.position.x) < 30 && Math.abs(box1.position.y - box2.position.y) < 30)
+	return (Math.abs(box1.position.x - box2.position.x) < 35 && Math.abs(box1.position.y - box2.position.y) < 35)
 }
 
 function paintHeaps(heaps){	
