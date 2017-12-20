@@ -27,7 +27,7 @@ RobotInfo = [
      {sense: senseDistance,  // function handle, determines type of sensor
       minVal: 0,  // minimum detectable distance, in pixels
       maxVal: 50,  // maximum detectable distance, in pixels
-      attachAngle: Math.PI/7,  // where the sensor is mounted on robot body
+      attachAngle: Math.PI/5,  // where the sensor is mounted on robot body
       lookAngle: 0,  // direction the sensor is looking (relative to center-out)
       id: 'distR',  // a unique, arbitrary ID of the sensor, for printing/debugging
       parent: null,  // robot object the sensor is attached to, added by InstantiateRobot
@@ -37,7 +37,7 @@ RobotInfo = [
      {sense: senseDistance,
       minVal: 0,
       maxVal: 50,
-      attachAngle: -Math.PI/7,
+      attachAngle: -Math.PI/5,
       lookAngle: 0,
       id: 'distL',
       parent: null,
@@ -46,7 +46,7 @@ RobotInfo = [
      {sense: touchSensor,
       minVal: 0,
       maxVal: 10,
-      attachAngle: Math.PI/7,
+      attachAngle: Math.PI/5,
       lookAngle: 0,
       id: 'touchR',
       parent: null,
@@ -55,7 +55,7 @@ RobotInfo = [
      {sense: touchSensor,
       minVal: 0,
       maxVal: 10,
-      attachAngle: -Math.PI/7,
+      attachAngle: -Math.PI/5,
       lookAngle: 0,
       id: 'touchL',
       parent: null,
@@ -882,7 +882,7 @@ var distanceLayer = new synaptic.Layer(2);
 distanceLayer.project(touchLayer);
 
 // set learning rate
-var learningRate = 0.01;
+var learningRate = 0.000000000001;
 var threshold = 0.6;
 
 /*
