@@ -27,7 +27,7 @@ RobotInfo = [
      {sense: senseDistance,  // function handle, determines type of sensor
       minVal: 0,  // minimum detectable distance, in pixels
       maxVal: 50,  // maximum detectable distance, in pixels
-      attachAngle: Math.PI/5,  // where the sensor is mounted on robot body
+      attachAngle: Math.PI/7,  // where the sensor is mounted on robot body
       lookAngle: 0,  // direction the sensor is looking (relative to center-out)
       id: 'distR',  // a unique, arbitrary ID of the sensor, for printing/debugging
       parent: null,  // robot object the sensor is attached to, added by InstantiateRobot
@@ -37,7 +37,7 @@ RobotInfo = [
      {sense: senseDistance,
       minVal: 0,
       maxVal: 50,
-      attachAngle: -Math.PI/5,
+      attachAngle: -Math.PI/7,
       lookAngle: 0,
       id: 'distL',
       parent: null,
@@ -46,7 +46,7 @@ RobotInfo = [
      {sense: touchSensor,
       minVal: 0,
       maxVal: 10,
-      attachAngle: Math.PI/5,
+      attachAngle: Math.PI/7,
       lookAngle: 0,
       id: 'touchR',
       parent: null,
@@ -55,7 +55,7 @@ RobotInfo = [
      {sense: touchSensor,
       minVal: 0,
       maxVal: 10,
-      attachAngle: -Math.PI/5,
+      attachAngle: -Math.PI/7,
       lookAngle: 0,
       id: 'touchL',
       parent: null,
@@ -65,7 +65,7 @@ RobotInfo = [
 ];
 
 simInfo = {
-  maxSteps: 10000,  // maximal number of simulation steps to run
+  maxSteps: 15000,  // maximal number of simulation steps to run
   airDrag: 0.1,  // "air" friction of enviroment; 0 is vacuum, 0.9 is molasses
   boxFric: 0.01, //
   boxMass: 0.05,  // mass of boxes
@@ -130,9 +130,9 @@ function init() {  // called once when loading HTML file
                                     mass: simInfo.boxMass,
                                     role: 'box'});
   };
-  const startX = 80, startY = 80,
+  const startX = 95, startY = 95,
         nBoxX = 4, nBoxY = 4,
-        gapX = 70, gapY = 70,
+        gapX = 55, gapY = 55,
         stack = Matter.Composites.stack(startX, startY,
                                         nBoxX, nBoxY,
                                         gapX, gapY, getBox);
@@ -555,9 +555,9 @@ function simStep() {
 	console.log("[0,0]")
 	distanceLayer.activate([0,0])
 	console.log(touchLayer.activate())
-	//var boxes = getBoxes();
-  	//var heaps = getHeaps(boxes);
-	//paintHeaps(heaps);
+	var boxes = getBoxes();
+  	var heaps = getHeaps(boxes);
+	paintHeaps(heaps);
   }	
 }
 
@@ -896,13 +896,13 @@ function train(touchSensor, distanceSensor){
 
 	// if touchSensor AND distanceSensor right are both active and distanceSensor left is not:
 	// 		learn right
-	if(touchSensor[1] && distanceSensor[1] > 0 && !(distanceSensor[0] > 0.5)){
+	if(touchSensor[1] && distanceSensor[1] > 0 && !(distanceSensor[0] > 0)){
 		touchLayer.propagate(learningRate, [0,1])
 	} 
 	
 	// if touchSensor AND distanceSensor left are both active and distanceSensor right is not:
 	// 		learn left
-	if (touchSensor[0] && distanceSensor[0] > 0 && !(distanceSensor[1] > 0.5 )){
+	if (touchSensor[0] && distanceSensor[0] > 0 && !(distanceSensor[1] > 0)){
 		touchLayer.propagate(learningRate, [1,0])
 	}
 }
@@ -915,7 +915,7 @@ function robotMove(robot) {
 	var touchL = getSensorValById(robot, "touchL")
 	
 	// get activation levels from touchLayer
-	distanceLayer.activate([sigmoid(distL), sigmoid(distR)])
+	distanceLayer.activate([linear(distL), linear(distR)])
 	var touch = touchLayer.activate()	
 	
 	// set robot drive speed
@@ -935,24 +935,102 @@ function robotMove(robot) {
 		rotate(robot, 0.01);
 		touchLayer.activate([1,0])
 		
-		// in case the 'touch[0] >= threshold' part was true, set touchR to 1 so the robot keeps learning
+		// in case the 'touch[0] >= threshold' part was true, set touchL to 1 so the robot keeps learning
 		touchL = 1
 	}
 	
 	// call trainer function
-	train([touchL, touchR], [sigmoid(distL), sigmoid(distR)])		
-	
-	if(simInfo.curSteps % 500 == 0){
-		console.log("[0,1]")
-		distanceLayer.activate([0,1])
-		console.log(touchLayer.activate())	
-	
-		console.log("[1,0]")
-		distanceLayer.activate([1,0])
-		console.log(touchLayer.activate())
-	}	
+	train([touchL, touchR], [linear(distL), linear(distR)])		
+
 };
 
-function sigmoid(t) {
-    return 1/(1+Math.exp(-t));
+function linear(t){
+	if (t > 0)
+		return 1 - (t/50)
+	else return 0
 }
+
+function getBoxes(){
+	var bodies = Matter.Composite.allBodies(simInfo.engine.world);	
+	var boxes = bodies.filter(function(body) {
+		return body.role == "box";	
+	});
+	return boxes
+}
+
+function getHeaps(boxes){
+	var groups = []
+	var positions = []
+	var loners = []
+	var c = 0;
+	
+	while(boxes.length > 0) {
+		var placed = 0
+		boxes.forEach(function(box, index, object){
+			console.log("box: ", box);
+			groups.forEach(function(group){
+				for(var i = 0; i<group.length; i++){
+					var box2 = group[i]
+					if(isNeighbor(box, box2)){
+						group.push(box)
+						boxes.splice(index, 1)
+						placed++
+						return
+					}
+				}
+			})
+		})	
+		
+		if(placed == 0){
+			var box = boxes.pop()
+			groups.push([box])
+		}	
+		console.log("length: ", boxes.length)
+	}	
+	
+	console.log("groups: ", groups)
+	
+	var heaps = groups.filter(function(group){
+		return group.length >= 3;
+	});
+	
+	console.log("Heaps: ", heaps)
+	
+	return heaps
+}
+
+function isNeighbor(box1, box2) {
+	return (Math.abs(box1.position.x - box2.position.x) < 30 && Math.abs(box1.position.y - box2.position.y) < 30)
+}
+
+function paintHeaps(heaps){	
+	var context = document.getElementById('arenaDidabot').getContext('2d');
+	heaps.forEach(function(heap){
+		context.beginPath();
+		var color = getRandomColor();
+		for (var bb = 0; bb < heap.length; bb += 1) {
+		  var vertices = heap[bb].vertices;
+		  context.moveTo(vertices[0].x, vertices[0].y);
+		  for (var vv = 1; vv < vertices.length; vv += 1) {
+			context.lineTo(vertices[vv].x, vertices[vv].y);
+			context.fillStyle = color;
+			context.fill();
+		  }
+		  			
+		}
+		context.closePath();
+	});
+	
+}
+
+function getRandomColor() {
+  var letters = '0123456789ABCDEF';
+  var color = '#';
+  for (var i = 0; i < 6; i++) {
+    color += letters[Math.floor(Math.random() * 16)];
+  }
+  return color;
+}
+
+
+
