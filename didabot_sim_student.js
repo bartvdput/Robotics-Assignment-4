@@ -935,7 +935,7 @@ function robotMove(robot) {
 		rotate(robot, 0.01);
 		touchLayer.activate([1,0])
 		
-		// in case the 'touch[0] >= threshold' part was true, set touchR to 1 so the robot keeps learning
+		// in case the 'touch[0] >= threshold' part was true, set touchL to 1 so the robot keeps learning
 		touchL = 1
 	}
 	
